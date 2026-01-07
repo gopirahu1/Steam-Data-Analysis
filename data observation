@@ -1,0 +1,12 @@
+t’s a rich, real-world behavioral dataset that helps me show complete data cleaning and analysis skills with meaningful business insights
+Out of 79 original features, many were repetitive, unstructured, or irrelevant for analysis. I selected 15 high-impact features that help answer realistic business questions such as: Which genres perform best? Does price affect popularity? Do platform availability or ratings influence recommendations? Reducing columns improves interpretability without losing meaningful information.
+import pandas as pd
+df=pd.read_csv("steam_data.csv")
+df.head(10)
+
+df.shape
+df.columns
+df.info()
+df.describe()
+df.isnull().sum()
+df.duplicated().sum()
