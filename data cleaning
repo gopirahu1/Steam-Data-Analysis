@@ -1,0 +1,210 @@
+import pandas as pd
+df=pd.read_csv("steam_data.csv")
+df=df.drop_duplicates()
+df.duplicated().sum()
+df.shape
+#name of games
+df["QueryName"]
+#changing query names to GameNames
+df=df.rename(columns={"QueryName": "GameName"})
+df.columns
+df["GameName"]=df["GameName"].fillna("unknown")
+print(df.isnull().sum())
+print(df.duplicated().sum())
+df.head(5)
+df['ReleaseDate'] = pd.to_datetime(df['ReleaseDate'], errors='coerce')
+df['ReleaseYear'] = df['ReleaseDate'].dt.year
+df['ReleaseYear'] = df['ReleaseYear'].fillna("Unknown")
+
+df.head(10)
+After extracting .dt.year, your column contains:
+
+Real years like: 1999, 2010, 2023
+
+Missing values for invalid dates → NaN
+
+But:
+
+Integers cannot hold NaN
+
+Floats CAN hold NaN
+
+df['ReleaseYear'] = df['ReleaseYear'].replace("Unknown", pd.NA)
+df['ReleaseYear'] = df['ReleaseYear'].astype("Int64")
+print(df['ReleaseYear'].unique())
+df['ReleaseYear'] = df['ReleaseYear'].astype('object').fillna("Unknown")
+print(df['ReleaseYear'].unique())
+df.to_csv('steam_data_cleaned.csv', index=False)
+
+print(df[['IsFree', 'PriceFinal']].head())
+
+df[(df['IsFree'] == True) & (df['PriceFinal'] > 0)]
+df.loc[df['IsFree'] == True, 'PriceFinal'] = 0
+
+df[(df['IsFree'] == True) & (df['PriceFinal'] > 0)]
+df.to_csv('steam_data_cleaned.csv', index=False)
+df['RequiredAge'] = df['RequiredAge'].apply(lambda x: 'All Ages' if x==0 else ('Teen (13+)' if x<=17 else 'Adult (18+)'))
+
+df.head()
+df['IsFree'] = df['IsFree'].replace({True: 'Free', False: 'Paid'})
+df["ControllerSupport"]=df["ControllerSupport"].replace({True:"provided",False:"Not Provided"})
+
+df.head()
+df['GenreIsAction'] = df['GenreIsAction'].replace({True: 'Action', False: 'No'})
+
+df['GenreIsIndie'] = df['GenreIsIndie'].replace({True: 'Indie', False: 'No'})
+
+df['GenreIsAdventure'] = df['GenreIsAdventure'].replace({True: 'Adventure', False: 'No'})
+
+df.head()
+df.to_csv('steam_data_cleaned.csv', index=False)
+===========================================================================================================================================
+Statistics
+==========
+#Pearson Correlation (Price vs Metacritic)
+df[['PriceFinal', 'Metacritic']].corr(method='pearson')
+(df['IsFree'] == 'Free').sum()
+
+df.info()
+(df['IsFree'] == 'paid').sum()
+The correlation between price and Metacritic rating is 0.18, indicating a very weak relationship. Therefore, a game’s rating does not strongly affect its price on Steam.
+| Category        | Number of Games          | Probability Formula | Probability |
+| --------------- | ------------------------ | ------------------- | ----------- |
+| **Free Games**  | 1,800 *(example count)*  | 1800 / 13298        | **13.5%**   |
+| **Paid Games**  | 11,498 *(example count)* | 11498 / 13298       | **86.5%**   |
+| **Total Games** | 13,298                   | —                   | **100%**    |
+
+There is only 13.5% chance that a randomly selected Steam game will be free.
+===========================================================================================================================================
+Inferential Statistics
+
+Inferential statistics help draw conclusions about the population using samples.
+| Hypothesis           | Meaning                                                 |
+| -------------------- | ------------------------------------------------------- |
+| **H₀ (Null)**        | Paid and Free games have **similar Metacritic ratings** |
+| **H₁ (Alternative)** | Paid and Free games have **different ratings**          |
+
+from scipy.stats import ttest_ind
+
+free_rating = df[df['IsFree']=='Free']['Metacritic']
+paid_rating = df[df['IsFree']=='Paid']['Metacritic']
+
+ttest_ind(free_rating, paid_rating, equal_var=False, nan_policy='omit')
+
+| Value                                    | Meaning                                            |
+| ---------------------------------------- | -------------------------------------------------- |
+| **t-statistic = -9.53**                  | There is a large difference between the two groups |
+| **p-value = 6.70 × 10⁻²¹ (very small!)** | Difference is extremely significant                |
+| **df = 1395.19**                         | Degrees of freedom                                 |
+
+Because p-value ≪ 0.05, we Reject the Null Hypothesis.
+
+💡 Paid games and Free games have DIFFERENT METACRITIC ratings.
+The negative t-value means Paid games most likely have LOWER average ratings than Free games, or Free games have higher average ratings.
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df = pd.read_csv("steam_data_cleaned.csv")
+
+# Replace 0 (missing) ratings with NaN
+df['Metacritic'].replace(0, np.nan, inplace=True)
+
+# Keep only rows with valid ratings
+df_filtered = df.dropna(subset=['Metacritic'])
+
+plt.figure(figsize=(10,6))
+sns.boxplot(x='IsFree', y='Metacritic', data=df_filtered)
+plt.xlabel('Game Type (Free or Paid)')
+plt.ylabel('Metacritic Rating')
+plt.title('Free vs Paid Steam Game Ratings')
+plt.show()
+
+The box plot shows that the median rating of Free and Paid games is similar.
+Even though paid games have more poorly rated outliers, the average rating level is the same.
+So, paying for a game does not guarantee better critic reviews.
+===========================================================================================================================================
+
+
+UNIVARIATE ANALYSIS
+
+(Analyzing ONE variable at a time)
+
+1) Histogram: Price Distribution
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df = pd.read_csv("steam_data_cleaned.csv")
+
+plt.figure(figsize=(10,6))
+sns.histplot(df['PriceFinal'], bins=40, kde=True)
+plt.xlabel('Game Price (USD)')
+plt.ylabel('Number of Games')
+plt.title('Distribution of Game Prices on Steam')
+plt.show()
+
+The histogram shows that most Steam games are either free or priced at lower values. As the price increases, the number of games decreases sharply, indicating that affordable games dominate the platform.
+#univariate
+platform_counts = df[['PlatformWindows', 'PlatformMac', 'PlatformLinux']].sum()
+
+plt.figure(figsize=(7,7))
+plt.pie(platform_counts, labels=['Windows', 'Mac', 'Linux'], autopct='%1.1f%%', startangle=90)
+plt.title('Steam Platform Support Distribution')
+plt.show()
+
+Most Steam games support Windows, while macOS and Linux have significantly lower support. This indicates that game developers primarily target the Windows platform.
+#Univariate
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df = pd.read_csv("steam_data_cleaned.csv")
+
+# Columns for genres
+genre_cols = ['GenreIsAction', 'GenreIsIndie', 'GenreIsAdventure']
+
+# Count only genre names (exclude "No")
+genre_counts = df[genre_cols].apply(lambda x: (x != 'No').sum())
+
+plt.figure(figsize=(8,6))
+sns.barplot(x=genre_counts.index, y=genre_counts.values)
+plt.xlabel('Genre')
+plt.ylabel('Number of Games')
+plt.title('Popularity of Game Genres on Steam')
+plt.show()
+
+he bar chart shows the distribution of popular genres on Steam. Indie games are the most common type, followed by Action and Adventure games. This suggests that independent game development is highly active on the Steam platform.
+===========================================================================================================================================
+BIVARIATE ANALYSIS
+
+(Analyzing TWO variables together)
+
+Scatter Plot: Price vs Recommendations
+plt.figure(figsize=(10,6))
+sns.scatterplot(x='PriceFinal', y='RecommendationCount', data=df)
+plt.xlabel('Price (USD)')
+plt.ylabel('Recommendations Received')
+plt.title('Relationship between Price and Popularity (Recommendations)')
+plt.show()
+
+There is no strong relationship between price and popularity. Some cheap or free games receive huge recommendations.
+sns.boxplot(x='IsFree', y='Metacritic', data=df[df['Metacritic']>0])
+plt.title('Free vs Paid Steam Game Ratings')
+plt.show()
+
+Median ratings for Free and Paid games are similar. Paying does not guarantee better ratings.
+MULTIVARIATE ANALYSIS
+
+(Analyzing MORE than two variables)
+
+Heatmap: Correlation Between Numerical Features
+plt.figure(figsize=(10,6))
+sns.heatmap(df[['PriceFinal','DLCCount','RecommendationCount','Metacritic']].corr(), annot=True, cmap='coolwarm')
+plt.title('Correlation Heatmap of Steam Game Features')
+plt.show()
+
+Heatmaps help visualize relationships. We found weak correlations between price and other features.
+df.to_csv("steam_data_cleaned.csv", index=False)
+df.head()
