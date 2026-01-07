@@ -1,0 +1,55 @@
+HANDLING OUTLIERS
+
+Data entry mistakes (typing 1000 instead of 100)
+
+Measurement issues (faulty instruments)
+
+Natural variations (rare real-world values)
+import pandas as pd
+import numpy as np
+df=pd.read_csv("steam_data_cleaned.csv")
+df.head(10)
+df.columns
+Metacritic is a popular website that gives a score (0–100) to games, movies, and TV shows based on reviews from critics.
+(df["Metacritic"]>100).sum()
+(df["Metacritic"]<1).sum()
+In this project, outliers were handled without using the IQR method.
+Instead, invalid values were identified using domain knowledge.
+The Metacritic score of 0 does not represent an actual rating, so it was treated as an unknown value and replaced with NaN.
+We use it to represent missing or unknown values in numeric data.
+
+| Option               | Problem                                                 |
+| -------------------- | ------------------------------------------------------- |
+| `0`                  | Looks like a real score (wrong)                         |
+| `"Unknown"` (string) | Breaks numeric calculations & plotting                  |
+| `np.nan`             | Treated as missing and still keeps the column numeric ✔ |
+
+(df["PriceFinal"]<1).sum()
+(df["PriceFinal"]>1000).sum()
+df.head(30)
+df.describe()
+import numpy as np
+
+df['Metacritic'] = df['Metacritic'].replace(0, np.nan)
+
+(df["PriceFinal"]<1).sum()
+(df["PriceFinal"]<1).sum()
+df.to_csv('steam_data_cleaned.csv', index=False)
+df.head()
+df.to_csv('steam_data_cleaned.csv', index=False)
+df.info()
+df.describe()
+df[df['RecommendationCount'] > 100000]
+Q1 = df['RecommendationCount'].quantile(0.25)
+Q3 = df['RecommendationCount'].quantile(0.75)
+IQR = Q3 - Q1
+
+lower = Q1 - 1.5 * IQR
+upper = Q3 + 1.5 * IQR
+
+df['RecommendationCount'] = df['RecommendationCount'].clip(lower, upper)
+
+(df['RecommendationCount'] > 100000).sum()
+
+df.describe()
+df.to_csv("steam_data_cleaned.csv", index=False)
